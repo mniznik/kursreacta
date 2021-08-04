@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kurs React - Tydzien 2</title>
+  <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .app {
+        font-family: sans-serif;
+    }
+    .timeboxEditor {
+        text-align: right;
+        border: 1px solid black;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    input {
+        min-width: 60%;
+        margin-left: 20px;
+        font-size: 16px;
+    }
+    button {
+        font-size: 16px;
+        margin-left: 10px;
+    }
+    .timebox {
+        border: 1px solid gray;
+        border-radius: 5px;
+        padding: 20px;
+        text-align: center;
+    }
+    .clock {
+        color: orangered;
+    }
+
+    /*.progressBar {*/
+    /*    border: 1px solid orangered;*/
+    /*    border-radius: 5px;*/
+    /*    display: flex;*/
+    /*    height: 25px;*/
+    /*    justify-content: flex-end;*/
+    /*    margin-bottom: 20px;*/
+    /*    padding: 6px;*/
+    /*}*/
+
+    /*.progressBar::after {*/
+    /*    content: '';*/
+    /*    background: orangered;*/
+    /*    height: 100%;*/
+    /*    line-height: 1.8rem;*/
+    /*    width: var(--width);*/
+    /*}*/
+
+
+    .progressBar {
+      border: 1px solid orangered;
+      border-radius: 5px;
+      height: 25px;
+      margin-bottom: 20px;
+      padding: 5px;
+    }
+
+    .progressBar > div {
+      height: 100%;
+      background-color: orangered;
+    }
+
+    .inactive {
+        filter: blur(2px) grayscale(1);
+    }
+    .progressBar2 {
+        border: 1px solid orangered;
+        border-radius: 5px;
+        height: 25px;
+        padding: 5px;
+        margin-bottom: 20px;
+    }
+    </style>
+</head>
+<body>
+  <div id="container">
+    <h1>Kurs Reacta - tydzien 1</h1>
+    <hr>
+  </div>
+  <div id="root"></div>
+</body>
+<script type="text/babel">
+
+  class TimeboxEditor extends React.Component {
+    state = {
+      title: 'Uczę się o kontrolowanych komponentach',
+      totalTimeInMinutes: 15
+    }
+
+    handleTitleChange = (event) => {
+      this.setState({ title: event.target.value})
+      this.props.onTitleChange(event)
+    }
+
+    handleTotalTimeInMinutesChange = (event) => {
+      this.setState({ totalTimeInMinutes: event.target.value})
+      this.props.onTotalTimeInMinutesChange(event)
+    }
+
+    render() {
+      const { title, totalTimeInMinutes } = this.state;
+      return (
+        <div className="timeboxEditor">
+          <label>Co robisz?
+            <input disabled={false} value={title} onChange={this.handleTitleChange} type="text"/>
+          </label><br />
+          <label>Ile minut?
+            <input disabled={false} value={totalTimeInMinutes} onChange={this.handleTotalTimeInMinutesChange} type="number" />
+          </label><br />
+          <button disabled={false}>Zacznij</button>
+        </div>
+      )
+    }
+
+  }
+
+  const Clock = ({ className="", hours=0, minutes=0, seconds=40, miliseconds=0 }) => {
+    const validHours = hours > 23 ? 23 : hours;
+    const validMinutes = minutes > 59 ? 59 : minutes;
+    const validSeconds = seconds > 59 ? 59 : seconds;
+    const validMiliseconds = miliseconds > 999 ? 999 : miliseconds;
+    const convertTime = element =>  element < 0 ? `00` : element < 10 ? `0${element}` : `${element}`;
+    const convertMiliseconds = element =>  element < 0 ? `00` : element < 10 ? `00${element}` : element < 100 ? `0${element}` : `${element}`;
+
+    return <h2 className={"clock " + className}>Pozostalo {convertTime(validHours)}:{convertTime(validMinutes)}:{convertTime(validSeconds)}:{convertMiliseconds(validMiliseconds)}</h2>
+  }
+
+  const ProgresBar = ({ className="", percent=21, trackRemaining=false }) => {
+    const invertProgress = trackRemaining ? 'right' : 'left';
+    return (
+      <div className={"progressBar2 " + className}
+         style={{background: `linear-gradient(to ${invertProgress}, white ${percent}%, orangered 0%) content-box`}}>
+      </div>
+      // <div className={"progressBar " + className}>
+      //   <div style={{width: `${percent}%`}}></div>
+      // </div>
+    )
+  }
+
+  class Timebox extends React.Component {
+    constructor (props) {
+      super(props)
+      this.state = {
+        isRunning: false,
+        isPaused: false,
+        pausesCount: 0,
+        elapsedTimeInSeconds: 0,
+        invertProgresBar: true
+      }
+    }
+
+    handleStart = (event) => {
+      this.setState({
+        isRunning: true,
+        elapsedTimeInSeconds: 0
+      })
+      this.startTimer();
+
+    }
+
+    handleStop = (event) => {
+      this.setState({
+        isRunning: false,
+        isPaused: false,
+        pausesCount: 0,
+        elapsedTimeInSeconds: 0
+      })
+      this.stopTimer();
+    }
+
+    togglePause = () => {
+      this.setState(
+        (prevState) =>  {
+          const isPaused = !prevState.isPaused;
+          if (isPaused) {
+            this.stopTimer();
+          } else {
+            this.startTimer();
+          }
+          return {
+            isPaused,
+            pausesCount: isPaused ? prevState.pausesCount + 1 : prevState.pausesCount
+          }
+        }
+      )
+    }
+
+    startTimer = () => {
+      this.intervalId = window.setInterval(
+        () => {
+          this.setState(
+            (prevState) => ({ elapsedTimeInSeconds: prevState.elapsedTimeInSeconds + 0.01})
+          )
+        },
+        10
+      )
+    }
+
+    stopTimer = () => {
+      window.clearInterval(this.intervalId);
+    }
+
+    render() {
+      const { invertProgresBar, isRunning, isPaused, pausesCount, elapsedTimeInSeconds } = this.state;
+      const {title, totalTimeInMinutes} = this.props;
+      const totalTimeInSeconds = totalTimeInMinutes * 60;
+      const timeLeftInSeconds = totalTimeInSeconds - elapsedTimeInSeconds;
+      const minutesLeft = Math.floor(timeLeftInSeconds/60);
+      const secondsLeft = Math.floor(timeLeftInSeconds%60)
+      const progressInPercent = invertProgresBar ? ((elapsedTimeInSeconds/totalTimeInSeconds) * 100) : 100 - ((elapsedTimeInSeconds/totalTimeInSeconds) * 100);
+      return (
+        <div className="timebox">
+          <h2>{title}</h2>
+          <Clock minutes={minutesLeft} seconds={secondsLeft}  className={isPaused ? "inactive" : ""}/>
+          <ProgresBar trackRemaining={invertProgresBar} percent={progressInPercent} className={isPaused ? "inactive" : ""}/>
+          <button onClick={this.handleStart} disabled={isRunning}>Start</button>
+          <button onClick={this.handleStop} disabled={!isRunning}>Stop</button>
+          <button onClick={this.togglePause} disabled={!isRunning}>{isPaused ? "Wznów" : "Pauzuj"}</button>
+          Liczba przerw: {pausesCount}
+        </div>
+      )
+    }
+  }
+
+  class EditableTimebox extends React.Component {
+    state = {
+      title: 'Uczę się o kontrolowanych komponentach',
+      totalTimeInMinutes: 1
+    }
+
+    handleTitleChanges = (event) => {
+      this.setState({ title: event.target.value})
+    }
+
+    handleTotalTimeInMinutes = (event) => {
+      this.setState({ totalTimeInMinutes: event.target.value})
+    }
+
+    render() {
+      const { title, totalTimeInMinutes } = this.state;
+      return (
+        <>
+          <TimeboxEditor onTitleChange={this.handleTitleChanges} onTotalTimeInMinutesChange={this.handleTotalTimeInMinutes} />
+          <Timebox title={title} totalTimeInMinutes={totalTimeInMinutes} />
+        </>
+      )
+    }
+  }
+
+  const App = () => (
+      <div className="app">
+          <EditableTimebox />
+      </div>
+  )
+
+  ReactDOM.render(<App/>, document.getElementById('root'))
+</script>
+</html>
