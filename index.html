@@ -6,17 +6,25 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/node-uuid/1.4.8/uuid.min.js"></script>
     <style>
         .App {
             font-family: sans-serif;
         }
 
-        .TimeboxEditor {
-            text-align: right;
+        .Timebox {
             border: 1px solid gray;
             border-radius: 5px;
             padding: 20px;
             margin-bottom: 20px;
+        }
+
+        .TimeboxEditor, .TimeboxCreator {
+            text-align: right;
+            border: 1px solid gray;
+            border-radius: 5px;
+            padding: 5px;
+            margin-bottom: 10px;
         }
 
         input {
@@ -30,7 +38,7 @@
             margin-left: 10px;
         }
 
-        .Timebox {
+        .CurrentTimeBox {
             border: 1px solid gray;
             border-radius: 5px;
             padding: 20px;
@@ -85,6 +93,8 @@
     )
   }
 
+
+
   function Clock ({hours = 0, minutes = 18, seconds = 29, className}) {
     const convertTime = element => element < 0 ? `00` : element < 10 ? `0${element}` : `${element}`
     const convertMiliseconds = element => element < 0 ? `00` : element < 10 ? `00${element}` : element < 100 ? `0${element}` : `${element}`
@@ -101,7 +111,7 @@
     )
   }
 
-  class TimeBox extends React.Component {
+  class CurrentTimeBox extends React.Component {
 
     state = {
       isRunning: false,
@@ -173,7 +183,7 @@
         this.stopTimer()
       }
       return (
-        <div className={`Timebox ${isEditable ? "inactive" : ""}`}>
+        <div className={`CurrentTimeBox ${isEditable ? "inactive" : ""}`}>
           <h1>Uczę się skrótów klawiszowych</h1>
           <Clock hours={hoursLeft} minutes={minutesLeft} seconds={secondsLeft} className={isPaused ? 'inactive' : ''}/>
           <ProgressBar className={isPaused ? 'inactive' : ''} percent={progressInPercent} trackRemaining={false}/>
@@ -227,7 +237,13 @@
             onSetTotalTime={this.handleSetTotalTime}
             onConfirm={this.handleConfirm}
           />
-          <TimeBox
+          <TimeboxCreator
+            isEditable={isEditable}
+            totalTime={totalTime}
+            onSetTotalTime={this.handleSetTotalTime}
+            onConfirm={this.handleConfirm}
+          />
+          <CurrentTimeBox
             isEditable={isEditable}
             totalTime={totalTimeInSeconds}
             onEdit={this.handleEdit}
@@ -237,10 +253,137 @@
     }
   }
 
+  class TimeboxCreator extends React.Component {
+    state = {
+      title: "",
+      totalTimeInSeconds: ""
+    }
+    handleTitleChange = (event) => {
+        this.setState({
+          title: event.target.value
+        })
+    }
+
+    handleTotalTimeInSecondsChange = (event) => {
+      this.setState({
+        totalTimeInSeconds: event.target.value
+      })
+    }
+    handleSubmit = (event) => {
+      event.preventDefault();
+      this.props.onCreate({
+        id: uuid.v4(),
+        title: this.state.title,
+        totalTimeInSeconds: this.state.totalTimeInSeconds
+      })
+      this.setState({title: "", totalTimeInSeconds:""})
+    }
+
+    render() {
+      return (
+        <form onSubmit={this.handleSubmit} className="TimeboxCreator">
+          <label>
+            Co robisz ?
+            <input
+              value={this.state.title}
+              type="text"
+              onChange={this.handleTitleChange}
+            />
+          </label><br/>
+          <label>
+            Ile czasu ?
+            <input
+              value={this.state.totalTimeInSeconds}
+              type="text"
+              onChange={this.handleTotalTimeInSecondsChange}
+            />
+          </label><br/>
+          <button>Dodaj timebox</button>
+        </form>
+      )
+    }
+  }
+
+  function Timebox({title, totalTimeInSeconds, onEdit, onDelete}) {
+    return (
+      <div className="Timebox">
+        <h3>{title} - {totalTimeInSeconds}</h3>
+        <button onClick={onDelete} >Usuń</button>
+        <button onClick={onEdit} >Zmień</button>
+        <input />
+      </div>
+    )
+  }
+
+  class TimeboxList extends React.Component {
+    state = {
+      timeboxes: [
+        {
+          title: "Uczę się list",
+          totalTimeInSeconds: 25
+        },
+        {
+          title: "Uczę się formularzy",
+          totalTimeInSeconds: 15
+        },
+        {
+          title: "Uczę się komponentów niekontrolowanych",
+          totalTimeInSeconds: 50
+        }
+      ]
+    }
+
+    addTimebox = (timebox) => {
+        this.setState(prevState => {
+          const timeboxes = [...prevState.timeboxes, timebox ]
+          return {timeboxes}
+        })
+    }
+
+    removeTimebox = (indexToRemove) => {
+      this.setState(prevState => {
+        const timeboxes = prevState.timeboxes.filter((timebox, index) => index !== indexToRemove)
+        return {timeboxes}
+      })
+    }
+
+    updateTimebox = (indexToUpdate, updateTimebox) => {
+      this.setState(prevState => {
+        const timeboxes = prevState.timeboxes.map((timebox, index) =>
+            index === indexToUpdate ? updateTimebox : timebox
+        )
+        return {timeboxes}
+      })
+    }
+
+    handleCreate = (createdTimebox) => {
+      this.addTimebox(createdTimebox)
+    }
+
+    render() {
+      return (
+        <>
+            <TimeboxCreator onCreate={this.handleCreate}/>
+            {this.state.timeboxes.map((timebox, index) => (
+                <Timebox
+                  key={timebox.id}
+                  title={timebox.title}
+                  totalTimeInSeconds={timebox.totalTimeInSeconds}
+                  onDelete={() => this.removeTimebox(index)}
+                  onEdit={() => this.updateTimebox(index, {...timebox, title: "Updated timebox" })}
+                />
+            ))}
+        </>
+      )
+    }
+  }
+
+
+
   function App () {
     return (
       <div className="App">
-        <EditableTimer/>
+        <TimeboxList />
       </div>
     )
   }
