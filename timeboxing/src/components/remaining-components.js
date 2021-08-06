@@ -24,8 +24,8 @@ function TimeboxEditor (props) {
 function ProgressBar ({percent = 33, trackRemaining = false, className}) {
   const float = trackRemaining ? 'right' : 'left'
   return (
-    <div className={`ProgressBar ${className}`}>
-      <div style={{width: `${percent}%`, float}}></div>
+    <div className={`progress progress--big progress--color-red ${className}`}>
+      <div className="progress__bar" style={{width: `${percent}%`, float}}></div>
     </div>
   )
 }
