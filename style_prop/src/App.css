@@ -1,3 +1,26 @@
+.Button {
+    --normal-background: green;
+    --hover-background: darkgreen;
+    --active-background: lightgreen;
+    --border-radius: "5px";
+    font-size: 20px;
+    background-color: var(--normal-background);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 10px;
+    outline: none;
+    margin: 10px;
+}
+
+.Button:hover {
+    background-color: var(--hover-background);
+}
+
+.Button:active {
+    background-color: var(--active-background);
+}
+
 .App {
   text-align: center;
 }
